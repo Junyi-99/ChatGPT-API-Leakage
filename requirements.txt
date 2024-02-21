@@ -1,0 +1,5 @@
+selenium
+tqdm
+pickle
+sqlite3
+openai
