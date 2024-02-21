@@ -39,6 +39,9 @@ That's it! The script will now scan GitHub for available OpenAI API Keys.
 
 # Results
 
-You can check the results using any database browser
+The results are stored in the `github.db` SQLite database, which is created in the same directory as the script. 
+
+You can view the contents of this database using any SQLite database browser of your choice.
+
 
 ![](pics/db.png)
