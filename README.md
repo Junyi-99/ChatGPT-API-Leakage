@@ -2,6 +2,8 @@
 
 This tool scans GitHub for available OpenAI API Keys.
 
+![](pics/db1.png)
+
 # Prerequisites
 
 Ensure you have the following installed on your system:
@@ -39,9 +41,10 @@ That's it! The script will now scan GitHub for available OpenAI API Keys.
 
 # Results
 
-The results are stored in the `github.db` SQLite database, which is created in the same directory as the script. 
+The results are stored in the `github.db` SQLite database, which is created in the same directory as the script.
 
 You can view the contents of this database using any SQLite database browser of your choice.
 
+![](pics/db1.png)
 
-![](pics/db.png)
+![](pics/db2.png)
