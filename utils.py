@@ -64,6 +64,6 @@ def check_key(key, model='gpt-3.5-turbo-0125') -> int:
         print("check", key, e.body["code"])
         return e.body["code"]
     except RateLimitError as e:
-        print("check", key, e.body["error"]["message"])
+        print("check", key, e.body["code"])
         return e.body["code"]
     return "empty"
