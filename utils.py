@@ -77,10 +77,10 @@ def check_key(key, model="gpt-3.5-turbo-0125") -> int:
         logging.info(f"🔑 check ok: {key}: {result}\n")
         return result
     except AuthenticationError as e:
-        logging.error(f"🔑 check ok: {key}: {e.body['code']}\n")
+        logging.info(f"🔑 check ok: {key}: {e.body['code']}\n")
         return e.body["code"]
     except RateLimitError as e:
-        logging.error(f"🔑 check ok: {key}: {e.body['code']}\n")
+        logging.info(f"🔑 check ok: {key}: {e.body['code']}\n")
         return e.body["code"]
     except Exception as e:
         logging.error(f"🔑 check error: {key}: {e}\n")
