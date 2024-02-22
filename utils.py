@@ -6,15 +6,18 @@ from sqlite3 import Connection, Cursor
 
 from openai import AuthenticationError, OpenAI, RateLimitError
 
+
 def db_get_all_keys(cur: Cursor) -> list:
     cur.execute("SELECT apiKey FROM APIKeys WHERE status='yes'")
     return cur.fetchall()
 
 
 def db_remove_duplication(con: Connection, cur: Cursor) -> None:
-    cur.execute('CREATE TABLE temp_table as SELECT DISTINCT apiKey, status, MAX(lastChecked) FROM APIKeys GROUP BY apiKey;')
-    cur.execute('DROP TABLE APIKeys;')
-    cur.execute('ALTER TABLE temp_table RENAME TO APIKeys;')
+    cur.execute(
+        "CREATE TABLE temp_table as SELECT apiKey, status, MAX(lastChecked) as lastChecked FROM APIKeys GROUP BY apiKey;"
+    )
+    cur.execute("DROP TABLE APIKeys;")
+    cur.execute("ALTER TABLE temp_table RENAME TO APIKeys;")
     con.commit()
 
 
@@ -22,7 +25,7 @@ def db_open(filename: str) -> tuple[Connection, Cursor]:
     if not os.path.exists(filename):
         print("Creating database github.db")
 
-    con = sqlite3.connect('github.db')
+    con = sqlite3.connect(filename)
     cur = con.cursor()
 
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='APIKeys'")
@@ -44,7 +47,10 @@ def db_delete(con: Connection, cur: Cursor, apiKey) -> None:
 
 def db_insert(con: Connection, cur: Cursor, apiKey, status):
     today = datetime.date.today()
-    cur.execute("INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)", (apiKey, status, today))
+    cur.execute(
+        "INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)",
+        (apiKey, status, today),
+    )
     con.commit()
 
 
@@ -53,7 +59,7 @@ def db_key_exists(cur: Cursor, apiKey) -> bool:
     return cur.fetchone() is not None
 
 
-def check_key(key, model='gpt-3.5-turbo-0125') -> int:
+def check_key(key, model="gpt-3.5-turbo-0125") -> int:
     try:
         client = OpenAI(api_key=key)
 
