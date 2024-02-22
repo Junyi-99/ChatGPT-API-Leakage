@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from selenium import webdriver
@@ -11,6 +12,8 @@ from tqdm import tqdm
 from utils import (check_key, db_close, db_insert, db_key_exists, db_open,
                    db_remove_duplication)
 
+logging.basicConfig(level=logging.INFO)
+
 driver = webdriver.Chrome()
 
 def login():
@@ -19,14 +22,14 @@ def login():
     cookie_exists = os.path.exists('cookies.pkl')
     driver.get('https://github.com/login' if cookie_exists else 'https://github.com/')
 
-    if cookie_exists:
-        print("🤗 No cookies found, please login to GitHub first")
-        input("Press Enter after logged in")
+    if not cookie_exists:
+        logging.info("🤗 No cookies found, please login to GitHub first")
+        input("Press Enter after logged in: ")
         with open("cookies.pkl", "wb") as file:
             pickle.dump(driver.get_cookies(), file)
-            print("🍪 Cookies saved")
+            logging.info("🍪 Cookies saved")
     else:
-        print("🍪 Cookies found, loading cookies")
+        logging.info("🍪 Cookies found, loading cookies")
         with open("cookies.pkl", "rb") as file:
             cookies = pickle.load(file)
 
@@ -34,7 +37,7 @@ def login():
             try:
                 driver.add_cookie(cookie)
             except UnableToSetCookieException as e:
-                print("🟡 Warning, unable to set a cookie", e)
+                logging.debug(f"🟡 Warning, unable to set a cookie {cookie}")
 
     driver.get('https://github.com/')
     # TODO: check if the user is logged in, if cookies are expired, etc.
@@ -68,7 +71,7 @@ def search(url: str):
 
         next_buttons = driver.find_elements(by=By.XPATH, value="//a[@aria-label='Next Page']")
         if len(next_buttons) == 0:
-            print("No more pages")
+            logging.debug("No more pages")
             break
         next_buttons[0].click()
 
