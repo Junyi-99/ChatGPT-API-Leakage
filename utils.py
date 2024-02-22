@@ -1,9 +1,14 @@
 import datetime
 import os
 import sqlite3
+import logging
 from sqlite3 import Connection, Cursor
 
 from openai import AuthenticationError, OpenAI, RateLimitError
+
+def db_get_all_keys(cur: Cursor) -> list:
+    cur.execute("SELECT apiKey FROM APIKeys WHERE status='yes'")
+    return cur.fetchall()
 
 
 def db_remove_duplication(con: Connection, cur: Cursor) -> None:
@@ -32,6 +37,10 @@ def db_close(con: Connection) -> None:
     con.close()
 
 
+def db_delete(con: Connection, cur: Cursor, apiKey) -> None:
+    cur.execute("DELETE FROM APIKeys WHERE apiKey=?", (apiKey,))
+    con.commit()
+
 def db_insert(con: Connection, cur: Cursor, apiKey, status):
     today = datetime.date.today()
     cur.execute("INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)", (apiKey, status, today))
@@ -58,12 +67,14 @@ def check_key(key, model='gpt-3.5-turbo-0125') -> int:
             ],
         )
         result = completion.choices[0].message.content
-        print("check", key, result)
+        logging.info(f"check ok: {key}: {result}\n")
         return result
     except AuthenticationError as e:
-        print("check", key, e.body["code"])
+        logging.error(f"check ok: {key}: {e.body['error']}\n")
         return e.body["code"]
     except RateLimitError as e:
-        print("check", key, e.body["code"])
+        logging.error(f"check ok: {key}: {e.body['error']}\n")
         return e.body["code"]
-    return "empty"
+    except Exception as e:
+        logging.error(f"check error: {key}: {e.body['error']}\n")
+        return "empty"
