@@ -131,11 +131,12 @@ class Leakage:
 def main():
     keywords = [
         'rag',
-        'llm',
+        "lab",
         'agent',
+        "chatbot",
+        'llm',
         "openai",
         "gpt4",
-        "lab",
         "experiment",
         "gpt",
         'key',
@@ -143,8 +144,6 @@ def main():
         "chatgpt",
         "gpt-3",
         "llm",
-        "agent",
-        "rag",
         "实验",
         "测试",
         "语言模型",
@@ -154,13 +153,12 @@ def main():
     languages = [
         '"Jupyter Notebook"',
         "Python",
-        "C++",
-        "Java",
-        "JavaScript",
-        "Go",
         "Shell",
-        "Rust",
+        "JavaScript",
         "TypeScript",
+        "Java",
+        "Go",
+        "C++",
         "PHP",
     ]
 
