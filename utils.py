@@ -41,6 +41,7 @@ def db_delete(con: Connection, cur: Cursor, apiKey) -> None:
     cur.execute("DELETE FROM APIKeys WHERE apiKey=?", (apiKey,))
     con.commit()
 
+
 def db_insert(con: Connection, cur: Cursor, apiKey, status):
     today = datetime.date.today()
     cur.execute("INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)", (apiKey, status, today))
@@ -67,14 +68,14 @@ def check_key(key, model='gpt-3.5-turbo-0125') -> int:
             ],
         )
         result = completion.choices[0].message.content
-        logging.info(f"check ok: {key}: {result}\n")
+        logging.info(f"🔑 check ok: {key}: {result}\n")
         return result
     except AuthenticationError as e:
-        logging.error(f"check ok: {key}: {e.body['error']}\n")
+        logging.error(f"🔑 check ok: {key}: {e.body['code']}\n")
         return e.body["code"]
     except RateLimitError as e:
-        logging.error(f"check ok: {key}: {e.body['error']}\n")
+        logging.error(f"🔑 check ok: {key}: {e.body['code']}\n")
         return e.body["code"]
     except Exception as e:
-        logging.error(f"check error: {key}: {e.body['error']}\n")
+        logging.error(f"🔑 check error: {key}: {e}\n")
         return "empty"

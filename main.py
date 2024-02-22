@@ -1,23 +1,24 @@
+import logging
 import os
 import pickle
 import re
-import logging
 from concurrent.futures import ThreadPoolExecutor
+from sqlite3 import Connection, Cursor
 
 from selenium import webdriver
 from selenium.common.exceptions import UnableToSetCookieException
 from selenium.webdriver.common.by import By
 from tqdm import tqdm
 
-from utils import (check_key, db_close, db_insert, db_key_exists, db_open,
-                   db_remove_duplication)
+from utils import (check_key, db_close, db_delete, db_get_all_keys, db_insert,
+                   db_key_exists, db_open, db_remove_duplication)
 
 logging.basicConfig(level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S')
 
-driver = webdriver.Chrome()
+DB_FILE = 'github.db'
 
-def login():
-    global driver
+def login(driver: webdriver.Chrome):
 
     cookie_exists = os.path.exists('cookies.pkl')
     driver.get('https://github.com/login' if cookie_exists else 'https://github.com/')
@@ -42,7 +43,7 @@ def login():
     driver.get('https://github.com/')
     # TODO: check if the user is logged in, if cookies are expired, etc.
 
-def search(url: str):
+def search(driver: webdriver.Chrome, url: str):
     con, cur = db_open('github.db')
 
     driver.get(url)
@@ -71,16 +72,16 @@ def search(url: str):
 
         next_buttons = driver.find_elements(by=By.XPATH, value="//a[@aria-label='Next Page']")
         if len(next_buttons) == 0:
-            logging.debug("No more pages")
+            logging.debug("⚪️ No more pages")
             break
         next_buttons[0].click()
 
-    db_remove_duplication(con, cur)
     con.commit()
     db_close(con)
 
 def main():
-    login()
+    driver = webdriver.Chrome()
+    login(driver)
     keywords = [
         'openai',
         'gpt4',
@@ -125,11 +126,22 @@ def main():
             candidate.append(f'https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch')
 
     for url in tqdm(candidate):
-        search(url)
+        search(driver, url)
+
+def update_existed_keys(con: Connection, cur: Cursor):
+    keys = db_get_all_keys(cur)
+    for key in keys:
+        result = check_key(key[0])
+        db_delete(con, cur, key[0])
+        db_insert(con, cur, key[0], result)
 
 
 if __name__ == '__main__':
+    
     main()
-
-
-
+    
+    con, cur = db_open(DB_FILE)
+    update_existed_keys(con, cur)
+    db_remove_duplication(con, cur)
+    con.commit()
+    db_close(con)
