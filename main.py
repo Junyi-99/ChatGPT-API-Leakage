@@ -29,7 +29,7 @@ class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         self.driver = webdriver.Chrome()
-        # self.driver.implicitly_wait(1)
+        self.driver.implicitly_wait(5)
         self.con, self.cur = db_open(self.db_file)
         
         self.keywords = keywords
@@ -116,6 +116,7 @@ class Leakage:
         db_remove_duplication(self.con, self.cur)
 
     def update_existed_keys(self):
+        logging.info("🔄 Updating existed keys")
         keys = db_get_all_keys(self.cur)
         for key in keys:
             result = check_key(key[0])
@@ -164,7 +165,7 @@ def main():
 
     leakage = Leakage("github.db", keywords, languages)
     leakage.login()
-    leakage.search(from_iter=160)
+    leakage.search(from_iter=0)
     leakage.update_existed_keys()
     leakage.deduplication()
 
