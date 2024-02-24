@@ -1,13 +1,20 @@
 # ChatGPT-API-Leakage
-# PROCLAMATION
-**THIS PROJECT IS ONLY FOR *SECURITY RESEARCH* AND REMINDS OTHERS TO PROTECT THEIR PROPERTY, DO NOT USE IT ILLEGALLY!!**
 
-**The project authors are not responsible for any consequences resulting from misuse.**  
+This tool scans GitHub for available OpenAI API Keys.
 
-**本项目仅用于安全研究以及提醒人们注意保护个人信息，本项目禁止用于任何违法用途！！**  
-**项目作者不对任何滥用导致的后果负责。**  
+![](pics/db1.png)
 
-# Keeping Your API Key Safe
+> **⚠️ DISCLAIMER**
+> 
+> THIS PROJECT IS ONLY FOR ***SECURITY RESEARCH*** AND REMINDS OTHERS TO PROTECT THEIR PROPERTY, DO NOT USE IT ILLEGALLY!!
+>
+> The project authors are not responsible for any consequences resulting from misuse.
+>
+> 本项目仅用于安全研究以及提醒人们注意保护个人信息，本项目禁止用于任何违法用途！！
+>
+> 项目作者不对任何滥用导致的后果负责。 
+
+## Keeping Your API Key Safe
 
 It's important to keep it safe to prevent unauthorized access. Here are some useful resources:
 
@@ -17,11 +24,6 @@ It's important to keep it safe to prevent unauthorized access. Here are some use
 
 - [My OpenAI API Key Leaked! What Should I Do?](https://www.gitguardian.com/remediation/openai-key) 
 
-## About
-This tool scans GitHub for available OpenAI API Keys.
-
-![](pics/db1.png)
-
 # Prerequisites
 
 Ensure you have the following installed on your system:
@@ -29,8 +31,7 @@ Ensure you have the following installed on your system:
  - Google Chrome (tested)
  - Python3
 
-
-## Installation
+# Installation
 
 1. Clone the repository:
 
