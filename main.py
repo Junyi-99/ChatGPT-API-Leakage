@@ -51,7 +51,7 @@ class Leakage:
             logging.info("🤗 No cookies found, please login to GitHub first")
             input("Press Enter after you logged in: ")
             with open("cookies.pkl", "wb") as file:
-                self.pickle.dump(self.driver.get_cookies(), file)
+                pickle.dump(self.driver.get_cookies(), file)
                 logging.info("🍪 Cookies saved")
         else:
             logging.info("🍪 Cookies found, loading cookies")
