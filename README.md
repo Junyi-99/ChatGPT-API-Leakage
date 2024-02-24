@@ -68,3 +68,12 @@ You can view the contents of this database using any SQLite database browser of 
 
 ![](pics/db2.png)
 
+# FAQ
+
+**Q: Why are you using Selenium instead of the GitHub Search API?**
+
+A: Because the official search API does not support regex search. Only web-based search does.
+
+**Q: Why are you limiting the programming language in the search instead of searching all languages?**
+
+A: Because the web-based search only provides the first 5 pages of results. There are many API keys available. By limiting the language, we can split the search results and obtain more keys.
