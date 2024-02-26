@@ -9,6 +9,8 @@ from sqlite3 import Connection, Cursor
 from selenium import webdriver
 from selenium.common.exceptions import UnableToSetCookieException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from tqdm import tqdm
 
 from utils import (check_key, db_close, db_delete, db_get_all_keys, db_insert,
@@ -115,10 +117,19 @@ class Leakage:
             next_buttons = self.driver.find_elements(
                 by=By.XPATH, value="//a[@aria-label='Next Page']"
             )
-            if len(next_buttons) == 0:
-                logging.debug("⚪️ No more pages")
+            
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, "//a[@aria-label='Next Page']"))
+                )
+                
+                next_buttons = self.driver.find_elements(
+                    by=By.XPATH, value="//a[@aria-label='Next Page']"
+                )
+                next_buttons[0].click()
+            except Exception as e:
+                logging.info("⚪️ No more pages")
                 break
-            next_buttons[0].click()
 
     def search(self, from_iter: int = 0):
         for idx, url in tqdm(enumerate(self.candidate), total=len(self.candidate)):
@@ -180,7 +191,7 @@ def main():
 
     leakage = Leakage("github.db", keywords, languages)
     leakage.login()
-    leakage.search(from_iter=90)
+    leakage.search(from_iter=0)
     leakage.update_existed_keys()
     leakage.deduplication()
 
