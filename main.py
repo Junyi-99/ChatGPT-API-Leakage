@@ -23,15 +23,15 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:
 class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
-        self.driver = webdriver.Chrome()
-        # self.driver.implicitly_wait(5)
+        self.driver = webdriver.Firefox()
+        self.driver.implicitly_wait(5)
         self.con, self.cur = db_open(self.db_file)
         
         self.keywords = keywords
         self.languages = languages
         self.candidate = []
-        for keyword in self.keywords:
-            for language in self.languages:
+        for language in self.languages:
+            for keyword in self.keywords:
                 self.candidate.append(
                     f"https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
                 )
