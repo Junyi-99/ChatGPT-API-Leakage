@@ -24,7 +24,7 @@ class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         self.driver = webdriver.Firefox()
-        self.driver.implicitly_wait(5)
+        self.driver.implicitly_wait(3)
         self.con, self.cur = db_open(self.db_file)
         
         self.keywords = keywords
