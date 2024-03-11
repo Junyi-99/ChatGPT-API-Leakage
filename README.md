@@ -24,11 +24,14 @@ It's important to keep it safe to prevent unauthorized access. Here are some use
 
 - [My OpenAI API Key Leaked! What Should I Do?](https://www.gitguardian.com/remediation/openai-key) 
 
+
 # Prerequisites
+
+This project has been tested and works perfectly on macOS, Windows and WSL2 (see [Run Linux GUI apps on the Windows Subsystem for Linux](https://learn.microsoft.com/en-us/windows/wsl/tutorials/gui-apps))
 
 Ensure you have the following installed on your system:
 
- - Google Chrome (tested)
+ - Google Chrome
  - Python3
 
 # Installation
