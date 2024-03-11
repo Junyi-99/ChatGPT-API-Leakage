@@ -23,10 +23,11 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:
 class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
-        self.driver = webdriver.Firefox()
+        logging.info("Opening Chrome ...")
+        self.driver = webdriver.Chrome()
         self.driver.implicitly_wait(3)
+        logging.info(f"📂 Opening database file {self.db_file}")
         self.con, self.cur = db_open(self.db_file)
-        
         self.keywords = keywords
         self.languages = languages
         self.candidate = []
