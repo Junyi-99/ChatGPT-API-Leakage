@@ -24,7 +24,10 @@ class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         logging.info("Opening Chrome ...")
-        self.driver = webdriver.Chrome()
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument("--ignore-certificate-errors")
+        self.options.add_argument("--ignore-ssl-errors")
+        self.driver = webdriver.Chrome(options=self.options)
         self.driver.implicitly_wait(3)
         logging.info(f"📂 Opening database file {self.db_file}")
         self.con, self.cur = db_open(self.db_file)
@@ -158,6 +161,10 @@ class Leakage:
 
 def main():
     keywords = [
+        'thoughts',
+        'RLHF',
+        'DPO',
+        'CoT',
         'rag',
         "lab",
         'agent',
