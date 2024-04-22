@@ -8,7 +8,7 @@ from openai import AuthenticationError, OpenAI, RateLimitError
 
 
 def db_get_all_keys(cur: Cursor) -> list:
-    cur.execute("SELECT apiKey FROM APIKeys WHERE status='yes'")
+    cur.execute("SELECT apiKey FROM APIKeys WHERE status!='access_terminated' AND status!='account_deactivated' AND status!='invalid_api_key'")
     return cur.fetchall()
 
 
