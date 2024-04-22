@@ -24,12 +24,6 @@ logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:
 class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
-        logging.info("Opening Chrome ...")
-        self.options = webdriver.ChromeOptions()
-        self.options.add_argument("--ignore-certificate-errors")
-        self.options.add_argument("--ignore-ssl-errors")
-        self.driver = webdriver.Chrome(options=self.options)
-        self.driver.implicitly_wait(3)
         logging.info(f"📂 Opening database file {self.db_file}")
         self.con, self.cur = db_open(self.db_file)
         self.keywords = keywords
@@ -42,6 +36,13 @@ class Leakage:
                 )
                 
     def login(self):
+        logging.info("Opening Chrome ...")
+        self.options = webdriver.ChromeOptions()
+        self.options.add_argument("--ignore-certificate-errors")
+        self.options.add_argument("--ignore-ssl-errors")
+        self.driver = webdriver.Chrome(options=self.options)
+        self.driver.implicitly_wait(3)
+        
         cookie_exists = os.path.exists("cookies.pkl")
         self.driver.get("https://github.com/login")
 
@@ -155,18 +156,19 @@ class Leakage:
     def update_existed_keys(self):
         logging.info("🔄 Updating existed keys")
         keys = db_get_all_keys(self.cur)
-        for key in keys:
+        for key in tqdm(keys, desc="🔄 Updating existed keys ..."):
             result = check_key(key[0])
             db_delete(self.con, self.cur, key[0])
             db_insert(self.con, self.cur, key[0], result)
 
     def __del__(self):
-        self.driver.quit()
+        if hasattr(self, "driver"):
+            self.driver.quit()
         self.con.commit()
         db_close(self.con)
 
 
-def main(from_iter: int = 0):
+def main(from_iter: int = 0, check_existed_keys_only: bool = False):
     keywords = [
         'thoughts',
         'RLHF',
@@ -205,14 +207,20 @@ def main(from_iter: int = 0):
     ]
 
     leakage = Leakage("github.db", keywords, languages)
-    leakage.login()
-    leakage.search(from_iter=from_iter)
+    if not check_existed_keys_only:
+        leakage.login()
+        leakage.search(from_iter=from_iter)
     leakage.update_existed_keys()
     leakage.deduplication()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--from-iter", type=int, default=0)
+    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode, otherwise INFO mode. Default is False (INFO mode)")
+    parser.add_argument("-ceko","--check-existed-keys-only", action="store_true", default=False, help="Only check existed keys")
     args = parser.parse_args()
     
-    main(from_iter=args.from_iter)
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+        
+    main(from_iter=args.from_iter, check_existed_keys_only=args.check_existed_keys_only)
