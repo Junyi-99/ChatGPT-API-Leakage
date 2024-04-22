@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import pickle
@@ -9,8 +10,8 @@ from sqlite3 import Connection, Cursor
 from selenium import webdriver
 from selenium.common.exceptions import UnableToSetCookieException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 
 from utils import (check_key, db_close, db_delete, db_get_all_keys, db_insert,
@@ -136,11 +137,17 @@ class Leakage:
                 break
 
     def search(self, from_iter: int = 0):
-        for idx, url in tqdm(enumerate(self.candidate), total=len(self.candidate)):
+        pbar = tqdm(enumerate(self.candidate), total=len(self.candidate), desc="🔍 Searching ...")
+        for idx, url in enumerate(self.candidate):
             if idx < from_iter:
+                pbar.update()
+                time.sleep(0.05) # let tqdm print the bar
+                logging.debug(f"⚪️ Skip {url}")
                 continue
             self.__search(url)
             logging.debug(f"\n🔍 Finished {url}")
+            pbar.update()
+        pbar.close()
 
     def deduplication(self):
         db_remove_duplication(self.con, self.cur)
@@ -159,7 +166,7 @@ class Leakage:
         db_close(self.con)
 
 
-def main():
+def main(from_iter: int = 0):
     keywords = [
         'thoughts',
         'RLHF',
@@ -199,9 +206,13 @@ def main():
 
     leakage = Leakage("github.db", keywords, languages)
     leakage.login()
-    leakage.search(from_iter=0)
+    leakage.search(from_iter=from_iter)
     leakage.update_existed_keys()
     leakage.deduplication()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--from-iter", type=int, default=0)
+    args = parser.parse_args()
+    
+    main(from_iter=args.from_iter)
