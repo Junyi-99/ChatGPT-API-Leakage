@@ -4,6 +4,7 @@ This tool scans GitHub for available OpenAI API Keys.
 
 ![Result Demo 1](pics/db1.png)
 
+> [!WARNING]
 > **⚠️ DISCLAIMER**
 >
 > THIS PROJECT IS ONLY FOR ***SECURITY RESEARCH*** AND REMINDS OTHERS TO PROTECT THEIR PROPERTY, DO NOT USE IT ILLEGALLY!!
@@ -13,6 +14,11 @@ This tool scans GitHub for available OpenAI API Keys.
 > 本项目仅用于安全研究以及提醒人们注意保护个人信息，本项目禁止用于任何违法用途！！
 >
 > 项目作者不对任何滥用导致的后果负责。
+
+> [!NOTE]
+> As of `March 11, 2024`, secret scanning and push protection will be enabled by default for all new user-owned public repositories that you create.
+> Check this announcement [here](https://docs.github.com/en/code-security/getting-started/quickstart-for-securing-your-repository).
+
 
 ## Keeping Your API Key Safe
 
