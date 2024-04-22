@@ -19,7 +19,6 @@ This tool scans GitHub for available OpenAI API Keys.
 > As of `March 11, 2024`, secret scanning and push protection will be enabled by default for all new user-owned public repositories that you create.
 > Check this announcement [here](https://docs.github.com/en/code-security/getting-started/quickstart-for-securing-your-repository).
 
-
 ## Keeping Your API Key Safe
 
 It's important to keep it safe to prevent unauthorized access. Here are some useful resources:
