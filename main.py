@@ -14,17 +14,25 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 
-from utils import (check_key, db_close, db_delete, db_get_all_keys, db_insert,
-                   db_key_exists, db_open, db_remove_duplication)
+from utils import (
+    check_key,
+    db_close,
+    db_delete,
+    db_get_all_keys,
+    db_insert,
+    db_key_exists,
+    db_open,
+    db_remove_duplication,
+)
 
-logging.basicConfig(level=logging.INFO)
-logging.basicConfig(format="%(asctime)s - %(message)s", datefmt="%d-%b-%y %H:%M:%S")
-
+FORMAT = "%(message)s"
+logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
+log = logging.getLogger("ChatGPT-API-Leakage")
 
 class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
-        logging.info(f"📂 Opening database file {self.db_file}")
+        log.info(f"📂 Opening database file {self.db_file}")
         self.con, self.cur = db_open(self.db_file)
         self.keywords = keywords
         self.languages = languages
@@ -34,26 +42,26 @@ class Leakage:
                 self.candidate.append(
                     f"https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
                 )
-                
+
     def login(self):
-        logging.info("Opening Chrome ...")
+        log.info("🌍 Opening Chrome ...")
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("--ignore-certificate-errors")
         self.options.add_argument("--ignore-ssl-errors")
         self.driver = webdriver.Chrome(options=self.options)
         self.driver.implicitly_wait(3)
-        
+
         cookie_exists = os.path.exists("cookies.pkl")
         self.driver.get("https://github.com/login")
 
         if not cookie_exists:
-            logging.info("🤗 No cookies found, please login to GitHub first")
+            log.info("🤗 No cookies found, please login to GitHub first")
             input("Press Enter after you logged in: ")
             with open("cookies.pkl", "wb") as file:
                 pickle.dump(self.driver.get_cookies(), file)
-                logging.info("🍪 Cookies saved")
+                log.info("🍪 Cookies saved")
         else:
-            logging.info("🍪 Cookies found, loading cookies")
+            log.info("🍪 Cookies found, loading cookies")
             try:
                 with open("cookies.pkl", "rb") as file:
                     cookies = pickle.load(file)
@@ -62,25 +70,33 @@ class Leakage:
                     try:
                         self.driver.add_cookie(cookie)
                     except UnableToSetCookieException as e:
-                        logging.debug(f"🟡 Warning, unable to set a cookie {cookie}")
+                        log.debug(f"🟡 Warning, unable to set a cookie {cookie}")
             except EOFError as e:
                 if os.path.exists("cookies.pkl"):
                     os.remove("cookies.pkl")
-                logging.error("🔴 Error, unable to load cookies, invalid cookies has been removed, please restart.")
+                log.error(
+                    "🔴 Error, unable to load cookies, invalid cookies has been removed, please restart."
+                )
             except pickle.UnpicklingError as e:
                 if os.path.exists("cookies.pkl"):
                     os.remove("cookies.pkl")
-                logging.error("🔴 Error, load cookies failed, invalid cookies has been removed, please restart.")
-                
-        logging.info("🤗 Redirecting ...")
+                log.error(
+                    "🔴 Error, load cookies failed, invalid cookies has been removed, please restart."
+                )
+
+        log.info("🤗 Redirecting ...")
         self.driver.get("https://github.com/")
-        
-        if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'Sign in')]"):
+
+        if self.driver.find_elements(
+            by=By.XPATH, value="//*[contains(text(), 'Sign in')]"
+        ):
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
-            logging.error("🔴 Error, you are not logged in, please restart and try again.")
+            log.error(
+                "🔴 Error, you are not logged in, please restart and try again."
+            )
             exit(1)
-        
+
         # TODO: check if the user is logged in, if cookies are expired, etc.
 
     def __search(self, url: str):
@@ -88,14 +104,17 @@ class Leakage:
         pattern = re.compile(r"sk-[a-zA-Z0-9]{48}")
 
         while True:
-            
+
             # If current webpage is reached the rate limit, then wait for 30 seconds
-            if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'You have exceeded a secondary rate limit')]"):
+            if self.driver.find_elements(
+                by=By.XPATH,
+                value="//*[contains(text(), 'You have exceeded a secondary rate limit')]",
+            ):
                 for _ in tqdm(range(30), desc="⏳ Rate limit reached, waiting ..."):
                     time.sleep(1)
                 self.driver.refresh()
                 continue
-            
+
             # Expand all the code
             [
                 element.click()
@@ -123,30 +142,36 @@ class Leakage:
             next_buttons = self.driver.find_elements(
                 by=By.XPATH, value="//a[@aria-label='Next Page']"
             )
-            
+
             try:
                 WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, "//a[@aria-label='Next Page']"))
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//a[@aria-label='Next Page']")
+                    )
                 )
-                
+
                 next_buttons = self.driver.find_elements(
                     by=By.XPATH, value="//a[@aria-label='Next Page']"
                 )
                 next_buttons[0].click()
             except Exception as e:
-                logging.info("⚪️ No more pages")
+                log.info("    ⚪️ No more pages")
                 break
 
     def search(self, from_iter: int = 0):
-        pbar = tqdm(enumerate(self.candidate), total=len(self.candidate), desc="🔍 Searching ...")
+        pbar = tqdm(
+            enumerate(self.candidate),
+            total=len(self.candidate),
+            desc="🔍 Searching ...",
+        )
         for idx, url in enumerate(self.candidate):
             if idx < from_iter:
                 pbar.update()
-                time.sleep(0.05) # let tqdm print the bar
-                logging.debug(f"⚪️ Skip {url}")
+                time.sleep(0.05)  # let tqdm print the bar
+                log.debug(f"⚪️ Skip {url}")
                 continue
             self.__search(url)
-            logging.debug(f"\n🔍 Finished {url}")
+            log.debug(f"\n🔍 Finished {url}")
             pbar.update()
         pbar.close()
 
@@ -154,7 +179,7 @@ class Leakage:
         db_remove_duplication(self.con, self.cur)
 
     def update_existed_keys(self):
-        logging.info("🔄 Updating existed keys")
+        log.info("🔄 Updating existed keys")
         keys = db_get_all_keys(self.cur)
         for key in tqdm(keys, desc="🔄 Updating existed keys ..."):
             result = check_key(key[0])
@@ -170,28 +195,33 @@ class Leakage:
 
 def main(from_iter: int = 0, check_existed_keys_only: bool = False):
     keywords = [
-        'thoughts',
-        'RLHF',
-        'DPO',
-        'CoT',
-        'rag',
+        "chatgpt",
+        "project",
+        "llama.cpp",
+        "aios",
+        "multi-agent",
+        "thoughts",
+        "RLHF",
+        "DPO",
+        "CoT",
+        "rag",
         "lab",
-        'agent',
+        "agent",
         "chatbot",
-        'llm',
+        "llm",
         "openai",
         "gpt4",
         "experiment",
         "gpt",
-        'key',
-        'apikey',
+        "key",
+        "apikey",
         "chatgpt",
         "gpt-3",
         "llm",
         "实验",
         "测试",
         "语言模型",
-        "密钥"
+        "密钥",
     ]
 
     languages = [
@@ -213,14 +243,26 @@ def main(from_iter: int = 0, check_existed_keys_only: bool = False):
     leakage.update_existed_keys()
     leakage.deduplication()
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--from-iter", type=int, default=0)
-    parser.add_argument("--debug", action="store_true", default=False, help="Enable debug mode, otherwise INFO mode. Default is False (INFO mode)")
-    parser.add_argument("-ceko","--check-existed-keys-only", action="store_true", default=False, help="Only check existed keys")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=False,
+        help="Enable debug mode, otherwise INFO mode. Default is False (INFO mode)",
+    )
+    parser.add_argument(
+        "-ceko",
+        "--check-existed-keys-only",
+        action="store_true",
+        default=False,
+        help="Only check existed keys",
+    )
     args = parser.parse_args()
-    
+
     if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-        
+        log.getLogger().setLevel(log.DEBUG)
+
     main(from_iter=args.from_iter, check_existed_keys_only=args.check_existed_keys_only)
