@@ -29,6 +29,7 @@ FORMAT = "%(message)s"
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
 log = logging.getLogger("ChatGPT-API-Leakage")
 
+
 class Leakage:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
@@ -92,9 +93,7 @@ class Leakage:
         ):
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
-            log.error(
-                "🔴 Error, you are not logged in, please restart and try again."
-            )
+            log.error("🔴 Error, you are not logged in, please restart and try again.")
             exit(1)
 
         # TODO: check if the user is logged in, if cookies are expired, etc.
@@ -186,6 +185,9 @@ class Leakage:
             db_delete(self.con, self.cur, key[0])
             db_insert(self.con, self.cur, key[0], result)
 
+    def all_available_keys(self) -> list:
+        return db_get_all_keys(self.cur)
+
     def __del__(self):
         if hasattr(self, "driver"):
             self.driver.quit()
@@ -195,33 +197,64 @@ class Leakage:
 
 def main(from_iter: int = 0, check_existed_keys_only: bool = False):
     keywords = [
-        "chatgpt",
-        "project",
-        "llama.cpp",
-        "aios",
-        "multi-agent",
-        "thoughts",
-        "RLHF",
-        "DPO",
+        "AI ethics",
+        "AI in customer service",
+        "AI in education",
+        "AI in finance",
+        "AI in healthcare",
+        "AI in marketing",
+        "AI-driven automation",
+        "AI-powered content creation",
         "CoT",
-        "rag",
-        "lab",
+        "DPO",
+        "RLHF",
         "agent",
+        "ai model",
+        "aios",
+        "api key",
+        "apikey",
+        "artificial intelligence",
+        "chain of thought",
         "chatbot",
-        "llm",
-        "openai",
-        "gpt4",
+        "chatgpt",
+        "competitor analysis",
+        "content strategy",
+        "conversational AI",
+        "data analysis",
+        "deep learning",
+        "direct preference optimization",
         "experiment",
         "gpt",
-        "key",
-        "apikey",
-        "chatgpt",
         "gpt-3",
+        "gpt-4",
+        "gpt4",
+        "key",
+        "keyword clustering",
+        "keyword research",
+        "lab",
+        "language model experimentation",
+        "large language model",
+        "llama.cpp",
         "llm",
+        "long-tail keywords",
+        "machine learning",
+        "multi-agent",
+        "multi-agent systems",
+        "natural language processing",
+        "openai",
+        "personalized AI",
+        "project",
+        "rag",
+        "reinforcement learning from human feedback",
+        "retrieval-augmented generation",
+        "search intent",
+        "semantic search",
+        "thoughts",
+        "virtual assistant",
         "实验",
+        "密钥",
         "测试",
         "语言模型",
-        "密钥",
     ]
 
     languages = [
@@ -242,7 +275,11 @@ def main(from_iter: int = 0, check_existed_keys_only: bool = False):
         leakage.search(from_iter=from_iter)
     leakage.update_existed_keys()
     leakage.deduplication()
+    keys = leakage.all_available_keys()
 
+    log.info(f"🔑 Available keys ({len(keys)}):")
+    for key in keys:
+        log.info(key)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -266,3 +303,4 @@ if __name__ == "__main__":
         log.getLogger().setLevel(log.DEBUG)
 
     main(from_iter=args.from_iter, check_existed_keys_only=args.check_existed_keys_only)
+    
