@@ -172,15 +172,42 @@ class APIKeyLeakageScanner:
                 )
                 next_buttons[0].click()
             except Exception as _:
-                log.info("    ⚪️ No more pages")
+                # log.info("    ⚪️ No more pages")
                 break
 
-    def search(self, from_iter: int = 0):
+    def _save_progress(self, from_iter: int):
+        with open(".progress.txt", "w") as file:
+            # Save the progress and timestamp
+            file.write(f"{from_iter}/{len(self.candidate_urls)}/{time.time()}")
+
+    def _load_progress(self):
+        if not os.path.exists(".progress.txt"):
+            return 0
+        with open(".progress.txt", "r") as file:
+            progress = file.read().strip().split("/")
+            last = int(progress[0])
+            totl = int(progress[1])
+            tmst = float(progress[2])
+            # if the time is less than 1 hour, then continue from the last progress
+            if time.time() - tmst < 3600:
+                # ask the user if they want to continue from the last progress
+                action = input(f"🔍 Progress found, do you want to continue from the last progress ({last}/{totl})? [yes] | no: ")
+                if action.lower() == "yes" or action.lower() == "y" or action == "":
+                    return int(progress[0])
+                else:
+                    return 0
+            return 0
+
+    def search(self, from_iter: int = None):
         pbar = tqdm(
             enumerate(self.candidate_urls),
             total=len(self.candidate_urls),
             desc="🔍 Searching ...",
         )
+
+        if from_iter is None:
+            from_iter = self._load_progress()
+
         for idx, url in enumerate(self.candidate_urls):
             if idx < from_iter:
                 pbar.update()
@@ -188,6 +215,7 @@ class APIKeyLeakageScanner:
                 log.debug(f"⚪️ Skip {url}")
                 continue
             self._process_url(url)
+            self._save_progress(idx)
             log.debug(f"\n🔍 Finished {url}")
             pbar.update()
         pbar.close()
@@ -213,7 +241,7 @@ class APIKeyLeakageScanner:
         db_close(self.con)
 
 
-def main(from_iter: int = 0, check_existed_keys_only: bool = False):
+def main(from_iter: int = None, check_existed_keys_only: bool = False):
     keywords = [
         "AI ethics",
         "AI in customer service",
@@ -302,7 +330,7 @@ def main(from_iter: int = 0, check_existed_keys_only: bool = False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--from-iter", type=int, default=0)
+    parser.add_argument("--from-iter", type=int, default=None, help="Start from the specific iteration")
     parser.add_argument(
         "--debug",
         action="store_true",

@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 github.db
 cookies.pkl
+.progress.txt
 # C extensions
 *.so
 
