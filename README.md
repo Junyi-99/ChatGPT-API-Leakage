@@ -80,12 +80,16 @@ You can view the contents of this database using any SQLite database browser of 
 
 **Q: Why are you using Selenium instead of the GitHub Search API?**
 
-A: Because the official search API does not support regex search. Only web-based search does.
+A: The official GitHub search API does not support regex search. Only web-based search does.
 
 **Q: Why are you limiting the programming language in the search instead of searching all languages?**
 
-A: Because the web-based search only provides the first 5 pages of results. There are many API keys available. By limiting the language, we can split the search results and obtain more keys.
+A: The web-based search only provides the first 5 pages of results. There are many API keys available. By limiting the language, we can break down the search results and obtain more keys.
 
 **Q: Why don't you use multithreading?**
 
 A: Because GitHub searches and OpenAI are rate-limited. Using multithreading does not significantly increase efficiency.
+
+**Q: Why is the API Key provided in your repository not working?**
+
+A: The screenshots in this repo demonstrate the tool's ability to scan for available API keys. However, these keys may expire within hours or days. Please use the tool to scan for your own keys instead of relying on the provided examples.
