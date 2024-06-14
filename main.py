@@ -189,7 +189,7 @@ class APIKeyLeakageScanner:
             totl = int(progress[1])
             tmst = float(progress[2])
             # if the time is less than 1 hour, then continue from the last progress
-            if time.time() - tmst < 3600:
+            if time.time() - tmst < 3600 and totl == len(self.candidate_urls):
                 # ask the user if they want to continue from the last progress
                 action = input(f"🔍 Progress found, do you want to continue from the last progress ({last}/{totl})? [yes] | no: ")
                 if action.lower() == "yes" or action.lower() == "y" or action == "":
