@@ -30,25 +30,74 @@ logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
 log = logging.getLogger("ChatGPT-API-Leakage")
 
 
-class Leakage:
+class APIKeyLeakageScanner:
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         log.info(f"📂 Opening database file {self.db_file}")
         self.con, self.cur = db_open(self.db_file)
+
         self.keywords = keywords
         self.languages = languages
-        self.candidate = []
-        for language in self.languages:
-            for keyword in self.keywords:
-                self.candidate.append(
-                    f"https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
-                )
+        self.candidate_urls = [
+            f"https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
+            for language in self.languages
+            for keyword in self.keywords
+        ]
 
-    def login(self):
+    def _save_cookies(self):
+        cookies = self.driver.get_cookies()
+        with open("cookies.pkl", "wb") as file:
+            pickle.dump(cookies, file)
+            log.info("🍪 Cookies saved")
+
+    def _load_cookies(self):
+        try:
+            with open("cookies.pkl", "rb") as file:
+                cookies = pickle.load(file)
+                for cookie in cookies:
+                    try:
+                        self.driver.add_cookie(cookie)
+                    except UnableToSetCookieException as e:
+                        log.debug(f"🟡 Warning, unable to set a cookie {cookie}")
+        except EOFError as e:
+            if os.path.exists("cookies.pkl"):
+                os.remove("cookies.pkl")
+            log.error(
+                "🔴 Error, unable to load cookies, invalid cookies has been removed, please restart."
+            )
+        except pickle.UnpicklingError as e:
+            if os.path.exists("cookies.pkl"):
+                os.remove("cookies.pkl")
+            log.error(
+                "🔴 Error, load cookies failed, invalid cookies has been removed, please restart."
+            )
+
+    def _test_cookies(self):
+        """
+        Test if the user is really logged in
+        """
+        log.info("🤗 Redirecting ...")
+        self.driver.get("https://github.com/")
+
+        if self.driver.find_elements(
+            by=By.XPATH, value="//*[contains(text(), 'Sign in')]"
+        ):
+            return False
+        return True
+
+    def _hit_rate_limit(self):
+        return self.driver.find_elements(
+            by=By.XPATH,
+            value="//*[contains(text(), 'You have exceeded a secondary rate limit')]",
+        )
+
+    def login_to_github(self):
         log.info("🌍 Opening Chrome ...")
+
         self.options = webdriver.ChromeOptions()
         self.options.add_argument("--ignore-certificate-errors")
         self.options.add_argument("--ignore-ssl-errors")
+
         self.driver = webdriver.Chrome(options=self.options)
         self.driver.implicitly_wait(3)
 
@@ -58,39 +107,12 @@ class Leakage:
         if not cookie_exists:
             log.info("🤗 No cookies found, please login to GitHub first")
             input("Press Enter after you logged in: ")
-            with open("cookies.pkl", "wb") as file:
-                pickle.dump(self.driver.get_cookies(), file)
-                log.info("🍪 Cookies saved")
+            self._save_cookies()
         else:
             log.info("🍪 Cookies found, loading cookies")
-            try:
-                with open("cookies.pkl", "rb") as file:
-                    cookies = pickle.load(file)
+            self._load_cookies()
 
-                for cookie in cookies:
-                    try:
-                        self.driver.add_cookie(cookie)
-                    except UnableToSetCookieException as e:
-                        log.debug(f"🟡 Warning, unable to set a cookie {cookie}")
-            except EOFError as e:
-                if os.path.exists("cookies.pkl"):
-                    os.remove("cookies.pkl")
-                log.error(
-                    "🔴 Error, unable to load cookies, invalid cookies has been removed, please restart."
-                )
-            except pickle.UnpicklingError as e:
-                if os.path.exists("cookies.pkl"):
-                    os.remove("cookies.pkl")
-                log.error(
-                    "🔴 Error, load cookies failed, invalid cookies has been removed, please restart."
-                )
-
-        log.info("🤗 Redirecting ...")
-        self.driver.get("https://github.com/")
-
-        if self.driver.find_elements(
-            by=By.XPATH, value="//*[contains(text(), 'Sign in')]"
-        ):
+        if not self._test_cookies():
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
             log.error("🔴 Error, you are not logged in, please restart and try again.")
@@ -98,17 +120,13 @@ class Leakage:
 
         # TODO: check if the user is logged in, if cookies are expired, etc.
 
-    def __search(self, url: str):
+    def _process_url(self, url: str):
         self.driver.get(url)
         pattern = re.compile(r"sk-[a-zA-Z0-9]{48}")
 
         while True:
-
             # If current webpage is reached the rate limit, then wait for 30 seconds
-            if self.driver.find_elements(
-                by=By.XPATH,
-                value="//*[contains(text(), 'You have exceeded a secondary rate limit')]",
-            ):
+            if self._hit_rate_limit():
                 for _ in tqdm(range(30), desc="⏳ Rate limit reached, waiting ..."):
                     time.sleep(1)
                 self.driver.refresh()
@@ -153,23 +171,23 @@ class Leakage:
                     by=By.XPATH, value="//a[@aria-label='Next Page']"
                 )
                 next_buttons[0].click()
-            except Exception as e:
+            except Exception as _:
                 log.info("    ⚪️ No more pages")
                 break
 
     def search(self, from_iter: int = 0):
         pbar = tqdm(
-            enumerate(self.candidate),
-            total=len(self.candidate),
+            enumerate(self.candidate_urls),
+            total=len(self.candidate_urls),
             desc="🔍 Searching ...",
         )
-        for idx, url in enumerate(self.candidate):
+        for idx, url in enumerate(self.candidate_urls):
             if idx < from_iter:
                 pbar.update()
                 time.sleep(0.05)  # let tqdm print the bar
                 log.debug(f"⚪️ Skip {url}")
                 continue
-            self.__search(url)
+            self._process_url(url)
             log.debug(f"\n🔍 Finished {url}")
             pbar.update()
         pbar.close()
@@ -269,9 +287,9 @@ def main(from_iter: int = 0, check_existed_keys_only: bool = False):
         "PHP",
     ]
 
-    leakage = Leakage("github.db", keywords, languages)
+    leakage = APIKeyLeakageScanner("github.db", keywords, languages)
     if not check_existed_keys_only:
-        leakage.login()
+        leakage.login_to_github()
         leakage.search(from_iter=from_iter)
     leakage.update_existed_keys()
     leakage.deduplication()
@@ -280,6 +298,7 @@ def main(from_iter: int = 0, check_existed_keys_only: bool = False):
     log.info(f"🔑 Available keys ({len(keys)}):")
     for key in keys:
         log.info(key)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -303,4 +322,3 @@ if __name__ == "__main__":
         log.getLogger().setLevel(log.DEBUG)
 
     main(from_iter=args.from_iter, check_existed_keys_only=args.check_existed_keys_only)
-    
