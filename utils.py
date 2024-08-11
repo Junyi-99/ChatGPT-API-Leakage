@@ -14,9 +14,7 @@ def db_get_all_keys(cur: Cursor) -> list:
 
 
 def db_remove_duplication(con: Connection, cur: Cursor) -> None:
-    cur.execute(
-        "CREATE TABLE temp_table as SELECT apiKey, status, MAX(lastChecked) as lastChecked FROM APIKeys GROUP BY apiKey;"
-    )
+    cur.execute("CREATE TABLE temp_table as SELECT apiKey, status, MAX(lastChecked) as lastChecked FROM APIKeys GROUP BY apiKey;")
     cur.execute("DROP TABLE APIKeys;")
     cur.execute("ALTER TABLE temp_table RENAME TO APIKeys;")
     con.commit()
