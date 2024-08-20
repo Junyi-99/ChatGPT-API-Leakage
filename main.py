@@ -19,6 +19,10 @@ FORMAT = "%(message)s"
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
 log = logging.getLogger("ChatGPT-API-Leakage")
 
+regex_list = [
+    re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}"),
+    re.compile(r"sk-[a-zA-Z0-9]{48}"), # Deprecated by OpenAI
+]
 
 class APIKeyLeakageScanner:
     def __init__(self, db_file: str, keywords: list, languages: list):
@@ -30,8 +34,8 @@ class APIKeyLeakageScanner:
         self.keywords = keywords
         self.languages = languages
         self.candidate_urls = [
-            # f"https://github.com/search?q={keyword}+AND+%28%2Fsk-%5Ba-zA-Z0-9%5D%7B48%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
-            f"https://github.com/search?q={keyword}+AND+%28%2Fsk-proj-%5BA-Za-z0-9%5D%7B20%7DT3BlbkFJ%5BA-Za-z0-9%5D%7B20%7D%2F%29+language%3A{language}&type=code&ref=advsearch"
+            f"https://github.com/search?q={keyword}+AND+(/{regex.pattern}/)+language:{language}&type=code&ref=advsearch"
+            for regex in regex_list
             for language in self.languages
             for keyword in self.keywords
         ]
@@ -96,7 +100,6 @@ class APIKeyLeakageScanner:
 
     def _process_url(self, url: str):
         self.driver.get(url)
-        pattern = re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}")
 
         while True:
             # If current webpage is reached the rate limit, then wait for 30 seconds
@@ -111,7 +114,9 @@ class APIKeyLeakageScanner:
 
             codes = self.driver.find_elements(by=By.CLASS_NAME, value="code-list")  # find all elements with class name 'f4'
             for element in codes:
-                apis = pattern.findall(element.text)
+                apis = []
+                for regex in regex_list:
+                    apis.extend(regex.findall(element.text))
                 if len(apis) == 0:
                     continue
 
