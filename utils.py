@@ -58,7 +58,7 @@ def db_key_exists(cur: Cursor, apiKey) -> bool:
     return cur.fetchone() is not None
 
 
-def check_key(key, model="gpt-3.5-turbo-0125") -> int:
+def check_key(key, model="gpt-3.5-turbo") -> int:
     try:
         client = OpenAI(api_key=key)
 
@@ -67,9 +67,9 @@ def check_key(key, model="gpt-3.5-turbo-0125") -> int:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a yeser, just output lowercase yes only.",
+                    "content": "You are a yeser, you only output lowercase yes.",
                 },
-                {"role": "user", "content": "yes or no?"},
+                {"role": "user", "content": "yes or no? say yes"},
             ],
         )
         result = completion.choices[0].message.content
