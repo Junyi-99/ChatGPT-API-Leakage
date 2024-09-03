@@ -54,7 +54,7 @@ Ensure you have the following installed on your system:
 2. Install required pypi packages
 
     ```bash
-    pip install -r requirements.txt
+    pip install selenium==4.23.1 tqdm==4.66.5 openai==1.41.1
     ```
 
 ## Usage
