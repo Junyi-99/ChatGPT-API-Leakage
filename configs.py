@@ -73,7 +73,7 @@ languages = [
     "PHP",
 ]
 
-regex_list = [
+REGEX_LIST = [
     re.compile(r"sk-proj-\S{74}T3BlbkFJ\S{73}A"),  # Named Project API Key
     re.compile(r"sk-proj-\S{58}T3BlbkFJ\S{58}"),  # Default Project API Key
     re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}"),

@@ -6,82 +6,23 @@ import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from configs import keywords, languages, regex_list
-
-# from functools import property
 from selenium import webdriver
-from selenium.common.exceptions import UnableToSetCookieException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 
-from utils import check_key, db_close, db_delete, db_get_all_keys, db_insert, db_key_exists, db_open, db_remove_duplication
+from configs import keywords, languages, REGEX_LIST
+from utils import (check_key, db_close, db_delete, db_get_all_keys, db_insert,
+                   db_key_exists, db_open, db_remove_duplication)
+
+from manager import CookieManager, ProgressManager
 
 FORMAT = "%(message)s"
 logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
 log = logging.getLogger("ChatGPT-API-Leakage")
-
-
-
-class ProgressManager:
-    def __init__(self, progress_file=".progress.txt"):
-        self.progress_file = progress_file
-
-    def save(self, from_iter: int, total: int):
-        with open(self.progress_file, "w") as file:
-            file.write(f"{from_iter}/{total}/{time.time()}")
-
-    def load(self, total: int) -> int:
-        if not os.path.exists(self.progress_file):
-            return 0
-
-        with open(self.progress_file, "r") as file:
-            last, totl, tmst = file.read().strip().split("/")
-            last, totl = int(last), int(totl)
-
-        if time.time() - float(tmst) < 3600 and totl == total:
-            action = input(f"🔍 Progress found, do you want to continue from the last progress ({last}/{totl})? [yes] | no: ").lower()
-            if action in {"yes", "y", ""}:
-                return last
-
-        return 0
-
-class Cookies:
-    def __init__(self, driver):
-        self.driver = driver
-
-    def save(self):
-        cookies = self.driver.get_cookies()
-        with open("cookies.pkl", "wb") as file:
-            pickle.dump(cookies, file)
-            log.info("🍪 Cookies saved")
-
-    def load(self):
-        try:
-            with open("cookies.pkl", "rb") as file:
-                cookies = pickle.load(file)
-                for cookie in cookies:
-                    try:
-                        self.driver.add_cookie(cookie)
-                    except UnableToSetCookieException as e:
-                        log.debug(f"🟡 Warning, unable to set a cookie {cookie}")
-        except (EOFError, pickle.UnpicklingError):
-            os.remove("cookies.pkl") if os.path.exists("cookies.pkl") else None
-            log.error("🔴 Error, unable to load cookies, invalid cookies has been removed, please restart.")
-
-    def test(self):
-        """
-        Test if the user is really logged in
-        """
-        log.info("🤗 Redirecting ...")
-        self.driver.get("https://github.com/")
-
-        if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'Sign in')]"):
-            os.remove("cookies.pkl") if os.path.exists("cookies.pkl") else None
-            log.error("🔴 Error, you are not logged in, please restart and try again.")
-            exit(1)
-        return True
+httpx_logger = logging.getLogger("httpx")
+httpx_logger.setLevel(logging.WARNING)
 
 
 class APIKeyLeakageScanner:
@@ -96,13 +37,12 @@ class APIKeyLeakageScanner:
         self.languages = languages
         self.candidate_urls = [
             f"https://github.com/search?q={keyword}+AND+(/{regex.pattern}/)+language:{language}&type=code&ref=advsearch"
-            for regex in regex_list
+            for regex in REGEX_LIST[2:] # Skip the first two regex
             for language in self.languages
             for keyword in self.keywords
-            if regex.pattern != r"sk-proj-\S{74}T3BlbkFJ\S{73}A" and regex.pattern != r"sk-proj-\S{58}T3BlbkFJ\S{58}"
         ]
-        self.candidate_urls.insert(0, f"https://github.com/search?q=(/{regex_list[0].pattern}/)&type=code&ref=advsearch")
-        self.candidate_urls.insert(0, f"https://github.com/search?q=(/{regex_list[1].pattern}/)&type=code&ref=advsearch")
+        self.candidate_urls.insert(0, f"https://github.com/search?q=(/{REGEX_LIST[0].pattern}/)&type=code&ref=advsearch")
+        self.candidate_urls.insert(0, f"https://github.com/search?q=(/{REGEX_LIST[1].pattern}/)&type=code&ref=advsearch")
 
     def login_to_github(self):
         log.info("🌍 Opening Chrome ...")
@@ -114,7 +54,7 @@ class APIKeyLeakageScanner:
         self.driver = webdriver.Chrome(options=options)
         self.driver.implicitly_wait(3)
 
-        self.cookies = Cookies(self.driver)
+        self.cookies = CookieManager(self.driver)
 
         cookie_exists = os.path.exists("cookies.pkl")
         self.driver.get("https://github.com/login")
@@ -127,7 +67,7 @@ class APIKeyLeakageScanner:
             log.info("🍪 Cookies found, loading cookies")
             self.cookies.load()
 
-        self.cookies.test()
+        self.cookies.verify_user_login()
 
     def _process_url(self, url: str):
         self.driver.get(url)
@@ -148,20 +88,13 @@ class APIKeyLeakageScanner:
             for element in codes:
                 apis = []
                 # Check all regex for each code block
-                for regex in regex_list:
-                    if regex.pattern == r"sk-proj-\S{74}T3BlbkFJ\S{73}A":
-                        # Very Long Key
-                        prefix_test = re.compile(r"sk-proj-\S{74}T3BlbkFJ")
-                        if len(prefix_test.findall(element.text)) > 0:
-                            # Need to show full code. (because the api key is too long)
-                            # get the <a> tag
-                            a_tag = element.find_element(by=By.XPATH, value=".//a")
-                            expand_urls.append(a_tag.get_attribute("href"))
-                    else:
-                        apis.extend(regex.findall(element.text))
-
-                if len(apis) == 0 and len(expand_urls) == 0:
-                    continue
+                for regex in REGEX_LIST[2:]:
+                    apis.extend(regex.findall(element.text))
+                if len(apis) == 0:
+                    # Need to show full code. (because the api key is too long)
+                    # get the <a> tag
+                    a_tag = element.find_element(by=By.XPATH, value=".//a")
+                    expand_urls.append(a_tag.get_attribute("href"))
 
                 apis = list(set(apis))
                 apis = [api for api in apis if not db_key_exists(self.cur, api)]
@@ -171,36 +104,44 @@ class APIKeyLeakageScanner:
                     for idx, result in enumerate(results):
                         db_insert(self.con, self.cur, apis[idx], result)
 
+            log.info(f"🌕 There are {len(expand_urls)} urls waiting to be expanded")
+
             next_buttons = self.driver.find_elements(by=By.XPATH, value="//a[@aria-label='Next Page']")
 
             try:
+                log.info("    🔍 Clicking next page")
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, "//a[@aria-label='Next Page']")))
 
                 next_buttons = self.driver.find_elements(by=By.XPATH, value="//a[@aria-label='Next Page']")
                 next_buttons[0].click()
             except Exception as _:
-                # log.info("    ⚪️ No more pages")
+                log.info("    ⚪️ No more pages")
                 break
 
 
         # Handle the expand_urls
-        for expand_url in expand_urls:
+        for expand_url in tqdm(expand_urls, desc="🔍 Expanding URLs ..."):
             self.driver.get(expand_url)
-
-            try:
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
-            except Exception as _:
-                log.error("🔴 Error, unable to find the iframe, continue anyway")
             time.sleep(3)
-            regex = re.compile(r"sk-proj-\S{74}T3BlbkFJ\S{73}A")
-            # apply the regex to the whole page
-            apis = regex.findall(self.driver.page_source)
-            apis = [api for api in apis if not db_key_exists(self.cur, api)]
-            print(apis)
-            with ThreadPoolExecutor(max_workers=10) as executor:
-                results = list(executor.map(check_key, apis))
-                for idx, result in enumerate(results):
-                    db_insert(self.con, self.cur, apis[idx], result)
+
+            retry = 0
+            while retry <= 3:
+                matches = []
+                for regex in REGEX_LIST:
+                    matches.extend(regex.findall(self.driver.page_source))
+
+                if len(matches) == 0:
+                    log.info(f"    ⚪️ No matches found in the expanded page, retrying [{retry}/3]...")
+                    retry += 1
+                    time.sleep(3)
+                    continue
+                new_apis = [api for api in matches if not db_key_exists(self.cur, api)]
+                log.info(f"    🟢 Found {len(matches)} matches in the expanded page, leaving {len(new_apis)} new APIs to check")
+                with ThreadPoolExecutor(max_workers=10) as executor:
+                    results = list(executor.map(check_key, new_apis))
+                    for idx, result in enumerate(results):
+                        db_insert(self.con, self.cur, new_apis[idx], result)
+                break
 
     def search(self, from_iter: int | None = None):
         total = len(self.candidate_urls)
