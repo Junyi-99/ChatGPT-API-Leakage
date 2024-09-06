@@ -135,7 +135,10 @@ class APIKeyLeakageScanner:
                     retry += 1
                     time.sleep(3)
                     continue
+                
                 new_apis = [api for api in matches if not db_key_exists(self.cur, api)]
+                new_apis = list(set(new_apis))
+
                 log.info(f"    🟢 Found {len(matches)} matches in the expanded page, leaving {len(new_apis)} new APIs to check")
                 with ThreadPoolExecutor(max_workers=10) as executor:
                     results = list(executor.map(check_key, new_apis))
