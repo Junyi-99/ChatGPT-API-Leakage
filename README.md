@@ -54,7 +54,7 @@ Ensure you have the following installed on your system:
 2. Install required pypi packages
 
     ```bash
-    pip install selenium==4.23.1 tqdm==4.66.5 openai==1.41.1
+    pip install selenium tqdm openai rich
     ```
 
 ## Usage
@@ -62,7 +62,7 @@ Ensure you have the following installed on your system:
 1. Run the main script:
 
     ```bash
-    python3 main.py
+    python3 src/main.py
     ```
 
 2. You will be prompted to log in to your GitHub account in the browser. Please do so.

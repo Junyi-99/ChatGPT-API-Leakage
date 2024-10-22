@@ -1,14 +1,10 @@
+"""
+This module is used to store the configurations.
+"""
+
 import re
 
-keywords = [
-    "AI ethics",
-    "AI in customer service",
-    "AI in education",
-    "AI in finance",
-    "AI in healthcare",
-    "AI in marketing",
-    "AI-driven automation",
-    "AI-powered content creation",
+KEYWORDS = [
     "CoT",
     "DPO",
     "RLHF",
@@ -61,7 +57,7 @@ keywords = [
     "语言模型",
 ]
 
-languages = [
+LANGUAGES = [
     '"Jupyter Notebook"',
     "Python",
     "Shell",
@@ -73,9 +69,11 @@ languages = [
     "PHP",
 ]
 
+# regex, have_many_results, result_too_lang
 REGEX_LIST = [
-    re.compile(r"sk-proj-\S{74}T3BlbkFJ\S{73}A"),  # Named Project API Key
-    re.compile(r"sk-proj-\S{58}T3BlbkFJ\S{58}"),  # Default Project API Key
-    re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}"),
-    re.compile(r"sk-[a-zA-Z0-9]{48}"),  # Deprecated by OpenAI
+    (re.compile(r"sk-proj-[A-Za-z0-9-_]{74}T3BlbkFJ[A-Za-z0-9-_]{73}A"), True, True),  # Named Project API Key (no matter normal or restricted)
+    (re.compile(r"sk-proj-[A-Za-z0-9-_]{58}T3BlbkFJ[A-Za-z0-9-_]{58}"), True, True),  # Old Project API Key
+    (re.compile(r"sk-svcacct-[A-Za-z0-9-_]+T3BlbkFJ[A-Za-z0-9-_]+"), False, False),  # Service Account Key
+    (re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}"), True, False),
+    (re.compile(r"sk-[a-zA-Z0-9]{48}"), True, False),  # Deprecated by OpenAI
 ]
