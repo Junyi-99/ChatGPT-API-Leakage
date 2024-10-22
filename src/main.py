@@ -166,14 +166,14 @@ class APIKeyLeakageScanner:
         Check a list of API keys
         """
         with self.dbmgr as mgr:
-            unique_apis = list(set(keys))
-            unique_apis = [api for api in unique_apis if not mgr.key_exists(api)]
+            unique_keys = list(set(keys))
+            unique_keys = [api for api in unique_keys if not mgr.key_exists(api)]
 
         with ThreadPoolExecutor(max_workers=10) as executor:
-            results = list(executor.map(check_key, keys))
+            results = list(executor.map(check_key, unique_keys))
             with self.dbmgr as mgr:
                 for idx, result in enumerate(results):
-                    mgr.insert(unique_apis[idx], result)
+                    mgr.insert(unique_keys[idx], result)
 
     def search(self, from_iter: int | None = None):
         """
