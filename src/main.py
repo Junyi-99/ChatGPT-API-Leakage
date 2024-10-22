@@ -219,7 +219,7 @@ class APIKeyLeakageScanner:
             return mgr.all_keys()
 
     def __del__(self):
-        if hasattr(self, "driver"):
+        if hasattr(self, "driver") and self.driver is not None:
             self.driver.quit()
 
 
@@ -241,7 +241,7 @@ def main(from_iter: int | None = None, check_existed_keys_only: bool = False, ke
 
     rich.print(f"🔑 [bold green]Available keys ({len(keys)}):[/bold green]")
     for key in keys:
-        rich.print(f"'{key}'")
+        rich.print(f"[bold green]{key[0]}[/bold green]")
 
 
 if __name__ == "__main__":
