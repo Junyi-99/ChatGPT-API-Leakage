@@ -58,11 +58,15 @@ KEYWORDS = [
 ]
 
 LANGUAGES = [
-    '"Jupyter Notebook"',
-    "Python",
-    "Shell",
+    "Dotenv",
+    "Text",
     "JavaScript",
+    "Python",
     "TypeScript",
+    "Dockerfile",
+    "Markdown",
+    '"Jupyter Notebook"',
+    "Shell",
     "Java",
     "Go",
     "C%2B%2B",

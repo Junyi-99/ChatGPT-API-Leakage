@@ -14,7 +14,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 
-from configs import KEYWORDS, REGEX_LIST
+from configs import KEYWORDS, REGEX_LIST, LANGUAGES
 from manager import CookieManager, DatabaseManager, ProgressManager
 from utils import check_key
 
@@ -29,7 +29,7 @@ class APIKeyLeakageScanner:
     """
     Scan GitHub for available OpenAI API Keys
     """
-    def __init__(self, db_file: str, keywords: list):
+    def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         self.progress = ProgressManager()
         self.driver: webdriver.Chrome | None = None
@@ -38,12 +38,13 @@ class APIKeyLeakageScanner:
 
         self.dbmgr = DatabaseManager(self.db_file)
 
-        self.keywords = keywords
+        # self.keywords = keywords
+        self.languages = languages
         self.candidate_urls = []
         for regex, too_many_results, _ in REGEX_LIST:
-            for keyword in self.keywords:
+            for language in self.languages:
                 if too_many_results: # if the regex is too many results, then we need to add AND condition
-                    self.candidate_urls.append(f"https://github.com/search?q={keyword}+AND+(/{regex.pattern}/)&type=code&ref=advsearch")
+                    self.candidate_urls.append(f"https://github.com/search?q=(/{regex.pattern}/)+language:{language}&type=code&ref=advsearch")
                 else: # if the regex is not too many results, then we just need the regex
                     self.candidate_urls.append(f"https://github.com/search?q=(/{regex.pattern}/)&type=code&ref=advsearch")
 
@@ -154,6 +155,8 @@ class APIKeyLeakageScanner:
                     new_apis = list(set(new_apis))
                 apis_found.extend(new_apis)
                 rich.print(f"    🟢 Found {len(matches)} matches in the expanded page, adding them to the list")
+                for match in matches:
+                    rich.print(f"        '{match}'")
                 break
 
         self.check_api_keys_and_save(apis_found)
@@ -221,10 +224,12 @@ class APIKeyLeakageScanner:
 
 
 
-def main(from_iter: int | None = None, check_existed_keys_only: bool = False, keywords: list | None = None):
+def main(from_iter: int | None = None, check_existed_keys_only: bool = False, keywords: list | None = None, languages: list | None = None):
     if keywords is None:
         keywords = KEYWORDS.copy()
-    leakage = APIKeyLeakageScanner("github.db", keywords)
+    if languages is None:
+        languages = LANGUAGES.copy()
+    leakage = APIKeyLeakageScanner("github.db", keywords, languages)
 
     if not check_existed_keys_only:
         leakage.login_to_github()
@@ -263,6 +268,13 @@ if __name__ == "__main__":
         default=KEYWORDS,
         help="Keywords to search",
     )
+    parser.add_argument(
+        "-l",
+        "--languages",
+        nargs="+",
+        default=LANGUAGES,
+        help="Languages to search",
+    )
     args = parser.parse_args()
 
     if args.debug:
@@ -271,5 +283,6 @@ if __name__ == "__main__":
     main(
         from_iter=args.from_iter,
         check_existed_keys_only=args.check_existed_keys_only,
-        keywords=args.keywords
+        keywords=args.keywords,
+        languages=args.languages,
     )
