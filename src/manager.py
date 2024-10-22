@@ -28,20 +28,19 @@ class ProgressManager:
         self.progress_file = progress_file
 
     def save(self, from_iter: int, total: int):
-        with open(self.progress_file, "w") as file:
+        with open(self.progress_file, "w", encoding="utf-8") as file:
             file.write(f"{from_iter}/{total}/{time.time()}")
 
     def load(self, total: int) -> int:
         if not os.path.exists(self.progress_file):
             return 0
 
-        with open(self.progress_file, "r") as file:
+        with open(self.progress_file, "r", encoding="utf-8") as file:
             last_, totl_, tmst_ = file.read().strip().split("/")
             last, totl = int(last_), int(totl_)
 
         if time.time() - float(tmst_) < 3600 and totl == total:
-            action = input(f"🔍 Progress found, do you want to continue from the last progress ({
-                           last}/{totl})? [yes] | no: ").lower()
+            action = input(f"🔍 Progress found, do you want to continue from the last progress ({last}/{totl})? [yes] | no: ").lower()
             if action in {"yes", "y", ""}:
                 return last
 
@@ -82,8 +81,7 @@ class CookieManager:
         if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'Sign in')]"):
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
-            log.error(
-                "🔴 Error, you are not logged in, please restart and try again.")
+            log.error("🔴 Error, you are not logged in, please restart and try again.")
             sys.exit(1)
         return True
 
@@ -146,17 +144,13 @@ class DatabaseManager:
         if self.cur is None:
             raise ValueError("Cursor is not initialized")
         today = date.today()
-        self.cur.execute(
-            "INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)",
-            (api_key, status, today),
-        )
+        self.cur.execute("INSERT INTO APIKeys(apiKey, status, lastChecked) VALUES(?, ?, ?)", (api_key, status, today))
         self.con.commit()
 
     def key_exists(self, api_key: str) -> bool:
         if self.cur is None:
             raise ValueError("Cursor is not initialized")
-        self.cur.execute(
-            "SELECT apiKey FROM APIKeys WHERE apiKey=?", (api_key,))
+        self.cur.execute("SELECT apiKey FROM APIKeys WHERE apiKey=?", (api_key,))
         return self.cur.fetchone() is not None
 
     def __del__(self):
