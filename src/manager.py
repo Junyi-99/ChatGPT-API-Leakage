@@ -1,16 +1,20 @@
 """
-This module is used to manage the progress and the cookies.
+Progress and Cookie Management Module
 
-It includes the following classes:
-- ProgressManager: to manage the progress
-- CookieManager: to manage the cookies
-- DatabaseManager: to manage the database
+This module provides functionality for managing application progress, cookies,
+and database operations.
+
+Classes:
+    ProgressManager: Handles progress tracking and persistence
+    CookieManager: Manages browser cookie operations
+    DatabaseManager: Handles database interactions
 """
+
 import logging
 import os
-import sys
 import pickle
 import sqlite3
+import sys
 import time
 from datetime import date
 from sqlite3 import Connection, Cursor
@@ -18,12 +22,31 @@ from sqlite3 import Connection, Cursor
 from selenium.common.exceptions import UnableToSetCookieException
 from selenium.webdriver.common.by import By
 
-FORMAT = "%(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]")
-log = logging.getLogger("ChatGPT-API-Leakage")
+LOGGER_NAME = "ChatGPT-API-Leakage"
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt="[%X]")
+logger = logging.getLogger(LOGGER_NAME)
+
+
+class ProgressManagerError(Exception):
+    """Custom exception for ProgressManager class errors"""
+
+    def __init__(self, message):
+        super().__init__(message)
 
 
 class ProgressManager:
+    """
+    Manages and persists progress information for long-running operations.
+
+    Attributes:
+        progress_file (Path): Path to the progress file
+
+    Methods:
+        save: Saves current progress
+        load: Loads saved progress
+    """
+
     def __init__(self, progress_file=".progress.txt"):
         self.progress_file = progress_file
 
@@ -32,6 +55,23 @@ class ProgressManager:
             file.write(f"{from_iter}/{total}/{time.time()}")
 
     def load(self, total: int) -> int:
+        """
+        Loads the previously saved progress if available and valid.
+
+        Args:
+            total (int): The total number of iterations expected in the current process
+
+        Returns:
+            int: The iteration number to continue from:
+                - Returns the last saved iteration if:
+                    - Progress file exists
+                    - Last save was within last hour (3600 seconds)
+                    - Saved total matches current total
+                    - User confirms to continue
+                - Returns 0 otherwise (fresh start)
+
+        The progress file format is: "{last_iteration}/{total_iterations}/{timestamp}"
+        """
         if not os.path.exists(self.progress_file):
             return 0
 
@@ -55,7 +95,7 @@ class CookieManager:
         cookies = self.driver.get_cookies()
         with open("cookies.pkl", "wb") as file:
             pickle.dump(cookies, file)
-            log.info("🍪 Cookies saved")
+            logger.info("🍪 Cookies saved")
 
     def load(self):
         try:
@@ -65,23 +105,23 @@ class CookieManager:
                     try:
                         self.driver.add_cookie(cookie)
                     except UnableToSetCookieException:
-                        log.debug("🟡 Warning, unable to set a cookie %s", cookie)
+                        logger.debug("🟡 Warning, unable to set a cookie %s", cookie)
         except (EOFError, pickle.UnpicklingError):
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
-            log.error("🔴 Error, unable to load cookies, invalid cookies has been removed, please restart.")
+            logger.error("🔴 Error, unable to load cookies, invalid cookies has been removed, please restart.")
 
     def verify_user_login(self):
         """
         Test if the user is really logged in
         """
-        log.info("🤗 Redirecting ...")
+        logger.info("🤗 Redirecting ...")
         self.driver.get("https://github.com/")
 
         if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'Sign in')]"):
             if os.path.exists("cookies.pkl"):
                 os.remove("cookies.pkl")
-            log.error("🔴 Error, you are not logged in, please restart and try again.")
+            logger.error("🔴 Error, you are not logged in, please restart and try again.")
             sys.exit(1)
         return True
 
@@ -90,6 +130,7 @@ class DatabaseManager:
     """
     This class is used to manage the database.
     """
+
     def __init__(self, db_filename: str):
         self.db_filename = db_filename
         self.con: Connection | None = None
@@ -112,7 +153,6 @@ class DatabaseManager:
     def __exit__(self, exc_type, exc_value, traceback):
         if self.con:
             self.con.close()
-
 
     def all_keys(self) -> list:
         if self.cur is None:

@@ -75,9 +75,13 @@ LANGUAGES = [
 
 # regex, have_many_results, result_too_lang
 REGEX_LIST = [
-    (re.compile(r"sk-proj-[A-Za-z0-9-_]{74}T3BlbkFJ[A-Za-z0-9-_]{73}A"), True, True),  # Named Project API Key (no matter normal or restricted)
-    (re.compile(r"sk-proj-[A-Za-z0-9-_]{58}T3BlbkFJ[A-Za-z0-9-_]{58}"), True, True),  # Old Project API Key
-    (re.compile(r"sk-svcacct-[A-Za-z0-9-_]+T3BlbkFJ[A-Za-z0-9-_]+"), False, False),  # Service Account Key
+    # Named Project API Key (no matter normal or restricted) still valid until Dec 2, 2024
+    (re.compile(r"sk-proj-[A-Za-z0-9-_]{74}T3BlbkFJ[A-Za-z0-9-_]{73}A"), True, True),
+    # Old Project API Key
+    (re.compile(r"sk-proj-[A-Za-z0-9-_]{58}T3BlbkFJ[A-Za-z0-9-_]{58}"), True, True),
+    # Service Account Key
+    (re.compile(r"sk-svcacct-[A-Za-z0-9-_]+T3BlbkFJ[A-Za-z0-9-_]+"), False, False),
     (re.compile(r"sk-proj-[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20}"), True, False),
-    (re.compile(r"sk-[a-zA-Z0-9]{48}"), True, False),  # Deprecated by OpenAI
+    # Old key format (deprecated by OpenAI)
+    (re.compile(r"sk-[a-zA-Z0-9]{48}"), True, False),
 ]
