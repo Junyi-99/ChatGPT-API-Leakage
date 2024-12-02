@@ -1,6 +1,7 @@
 """
 Scan GitHub for available OpenAI API Keys
 """
+
 import argparse
 import logging
 import os
@@ -14,7 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
 
-from configs import KEYWORDS, REGEX_LIST, LANGUAGES
+from configs import KEYWORDS, LANGUAGES, PATHS, REGEX_LIST
 from manager import CookieManager, DatabaseManager, ProgressManager
 from utils import check_key
 
@@ -29,6 +30,7 @@ class APIKeyLeakageScanner:
     """
     Scan GitHub for available OpenAI API Keys
     """
+
     def __init__(self, db_file: str, keywords: list, languages: list):
         self.db_file = db_file
         self.progress = ProgressManager()
@@ -42,10 +44,14 @@ class APIKeyLeakageScanner:
         self.languages = languages
         self.candidate_urls = []
         for regex, too_many_results, _ in REGEX_LIST:
+            # Add the paths to the search query
+            for path in PATHS:
+                self.candidate_urls.append(f"https://github.com/search?q=(/{regex.pattern}/)+AND+({path})&type=code&ref=advsearch")
+
             for language in self.languages:
-                if too_many_results: # if the regex is too many results, then we need to add AND condition
+                if too_many_results:  # if the regex is too many results, then we need to add AND condition
                     self.candidate_urls.append(f"https://github.com/search?q=(/{regex.pattern}/)+language:{language}&type=code&ref=advsearch")
-                else: # if the regex is not too many results, then we just need the regex
+                else:  # if the regex is not too many results, then we just need the regex
                     self.candidate_urls.append(f"https://github.com/search?q=(/{regex.pattern}/)&type=code&ref=advsearch")
 
     def login_to_github(self):
@@ -87,7 +93,7 @@ class APIKeyLeakageScanner:
         apis_found = []
         urls_need_expand = []
 
-        while True: # Loop until all the pages are processed
+        while True:  # Loop until all the pages are processed
             # If current webpage is reached the rate limit, then wait for 30 seconds
             if self.driver.find_elements(by=By.XPATH, value="//*[contains(text(), 'You have exceeded a secondary rate limit')]"):
                 for _ in tqdm(range(30), desc="⏳ Rate limit reached, waiting ..."):
@@ -124,10 +130,9 @@ class APIKeyLeakageScanner:
                 WebDriverWait(self.driver, 5).until(EC.presence_of_element_located((By.XPATH, "//a[@aria-label='Next Page']")))
                 next_buttons = self.driver.find_elements(by=By.XPATH, value="//a[@aria-label='Next Page']")
                 next_buttons[0].click()
-            except Exception as _:
+            except Exception:
                 rich.print("    ⚪️ No more pages")
                 break
-
 
         # Handle the expand_urls
         for url in tqdm(urls_need_expand, desc="🔍 Expanding URLs ..."):
@@ -135,7 +140,7 @@ class APIKeyLeakageScanner:
                 raise ValueError("Driver is not initialized")
 
             self.driver.get(url)
-            time.sleep(3) # TODO: find a better way to wait for the page to load
+            time.sleep(3)  # TODO: find a better way to wait for the page to load
 
             retry = 0
             while retry <= 3:
@@ -223,7 +228,6 @@ class APIKeyLeakageScanner:
             self.driver.quit()
 
 
-
 def main(from_iter: int | None = None, check_existed_keys_only: bool = False, keywords: list | None = None, languages: list | None = None):
     if keywords is None:
         keywords = KEYWORDS.copy()
@@ -246,8 +250,7 @@ def main(from_iter: int | None = None, check_existed_keys_only: bool = False, ke
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--from-iter", type=int, default=None,
-                        help="Start from the specific iteration")
+    parser.add_argument("--from-iter", type=int, default=None, help="Start from the specific iteration")
     parser.add_argument(
         "--debug",
         action="store_true",
