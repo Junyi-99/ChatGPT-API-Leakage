@@ -75,9 +75,34 @@ The results are stored in the `github.db` SQLite database, which is created in t
 
 You can view the contents of this database using any SQLite database browser of your choice.
 
-![Result Demo 1](pics/db1.png)
+<figure>
+  <img
+  src="pics/demo2.png"
+  alt="Running Demo">
+  <p align="center">
+    Running Demo
+  </p>
+</figure>
 
-![Result Demo 2](pics/db2.png)
+<figure>
+  <img
+  src="pics/db1.png"
+  alt="Result in DB">
+  <p align="center">
+    Result stored in SQLite (available API Keys)
+  </p>
+</figure>
+
+<figure>
+  <img
+  src="pics/db2.png"
+  alt="Result in DB">
+  <p align="center">
+    Result stored in SQLite (different API Key status)
+  </p>
+</figure>
+
+
 
 ## FAQ
 
@@ -100,4 +125,7 @@ A: The screenshots in this repo demonstrate the tool's ability to scan for avail
 **Q: What's the push protection?**
 
 A: see picture.
-![WARNING1](pics/warning1.png)
+
+<p align="center">
+    <kbd><img src="pics/warning1.png" alt="GitHub Push Protection" width="400"> </kbd>
+</p>
